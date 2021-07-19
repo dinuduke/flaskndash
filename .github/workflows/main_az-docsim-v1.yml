@@ -59,4 +59,4 @@ jobs:
         with:
           app-name: 'az-docsim-v1'
           slot-name: 'production'
-          publish-profile: ${{ secrets.AzureAppService_PublishProfile_ea809b3b185146e08f968e6c5700b311 }}
+          publish-profile: ${{ secrets.AzureAppService_PublishProfile_017cf067661241d88eb255dc66da7c8e }}
