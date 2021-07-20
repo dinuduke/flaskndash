@@ -81,3 +81,5 @@ webencodings==0.5.1
 Werkzeug==1.0.1
 xlrd==1.2.0
 sklearn
+dash
+plotly
