@@ -1,58 +1,65 @@
-from flask import Flask, json, request, jsonify
+from flask import Flask, json, request, jsonify,  render_template, redirect
 import os 
 import urllib.request
 from werkzeug.utils import secure_filename
+import model_frequency 
 
-app =  Flask(__name__)
+app =  Flask(__name__,template_folder='templates')
 
-# app.secret_key  = "caircocoders-ednalan"
+from dashboard import create_dash_application
+
+create_dash_application(app)
+
 UPLOAD_FOLDER = 'static/uploads'
-app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
-# app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024 
 
-ALLOWED_EXTENSIONS = set(['txt','pdf','png','jpg','jpeg','gif'])
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+
+app.config["ALLOWED_FILE_EXTENSIONS"] = ["TXT","PDF","DOCX","JPEG", "JPG", "PNG", "GIF"]
 
 def allowed_file(filename):
-    return '.' in filename and filename.rsplit('.',1)[1].lower() in ALLOWED_EXTENSIONS
 
-@app.route('/')
-def main():
-    return 'Homepage of API'
+    if not "." in filename:
+        return False
 
-@app.route('/upload',methods=['POST'])
-def upload_file():
-    if 'files[]' not in request.files:
-        resp =  jsonify({'message' : 'No file part in the request'})
-        resp.status_code = 400
-        return resp
+    ext = filename.rsplit(".", 1)[1]
 
-    files = request.files.getlist('files[]')
-
-    errors = {}
-    success = False
-
-    for file in files:
-        if file and allowed_file(file.filename):
-            filename = secure_filename(file.filename)
-            file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
-            success = True
-        else:
-            errors[file.filename] = 'File type is not allowed'
-
-    if success and errors:
-        errors['message'] = 'File(s) successfully uploaded'
-        resp = jsonify(errors)
-        resp.status_code = 500
-        return resp
-    if success:
-        resp = jsonify({'message' : 'Files sucessfully uploaded'})
-        resp.status_code = 201
-        return resp
+    if ext.upper() in app.config["ALLOWED_FILE_EXTENSIONS"]:
+        return True
     else:
-        resp = jsonify(errors)
-        resp.status_code = 500
-        return resp
+        return False
+@app.route('/')
+@app.route("/upload-file/", methods=["GET", "POST"])
+def upload_file():
+    if request.method == "POST":
+        if request.files:
+            file = request.files["file"]
 
+            if file.filename == "":
+                print("No filename")
+                return redirect(request.url)
+
+            if allowed_file(file.filename):
+                filename = secure_filename(file.filename)
+
+                file.save(os.path.join(app.config["UPLOAD_FOLDER"], filename))
+
+                print("File saved : " + filename)
+                frequency_df = model_frequency.frequency_sim().reset_index()
+                # headin = frequency_df.columns.values
+                # print(headin)
+                # print(frequency_df)
+                print(frequency_df)
+                # print(type(frequency_df))
+
+                # return render_template("table.html", headings=headings, data=data)
+                return render_template("table.html", headings=frequency_df.columns.values, data=list(frequency_df.values.tolist()), zip=zip)
+
+                # return redirect(request.url)
+
+            else:
+                print("That file extension is not allowed")
+                return redirect(request.url)
+    return render_template("upload_file.html")
 
 if __name__ == '__main__':
     app.run(debug=True)
